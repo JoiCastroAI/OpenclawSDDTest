@@ -1,0 +1,721 @@
+---
+description: Frontend development standards for the React 18 + TypeScript application using Redux state management, React Router, Bootstrap 5, and Cypress e2e testing
+globs: ["frontend/src/**/*.{ts,tsx,js,jsx,css,scss}", "frontend/cypress/**/*.{ts,js}", "frontend/tsconfig.json", "frontend/package.json", "frontend/.eslintrc.*"]
+alwaysApply: true
+---
+
+# Frontend Project Standards and Best Practices
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Coding Standards](#coding-standards)
+- [Component Conventions](#component-conventions)
+- [State Management with Redux](#state-management-with-redux)
+- [Routing](#routing)
+- [UI/UX Standards](#uiux-standards)
+- [API Communication](#api-communication)
+- [Testing Standards](#testing-standards)
+- [Configuration Standards](#configuration-standards)
+- [Performance Best Practices](#performance-best-practices)
+- [Development Workflow](#development-workflow)
+
+---
+
+## Overview
+
+This document defines the conventions and standards for the frontend application. The frontend uses React 18 with TypeScript, Redux Toolkit for state management, React Router for routing, and Bootstrap 5 for styling. All code, comments, and error messages must be in English.
+
+## Technology Stack
+
+### Core Technologies
+- **React 18**: Functional components with hooks exclusively
+- **TypeScript 5.x**: Strict mode enabled, no `any` unless explicitly justified
+- **Vite**: Build tool and dev server
+- **React Router DOM 6**: Client-side routing with nested layouts
+
+### State Management
+- **Redux Toolkit (RTK)**: Global state management
+- **RTK Query**: Server state / API data fetching and caching
+- **React hooks**: Local component state (`useState`, `useReducer`)
+
+### UI Framework
+- **Bootstrap 5.3**: CSS framework
+- **React Bootstrap**: Bootstrap components for React
+- **Bootstrap Icons**: Icon library
+
+### Testing
+- **Cypress**: End-to-end testing
+- **Vitest + React Testing Library**: Unit/component testing
+
+### Development Tools
+- **ESLint**: Linting with React and TypeScript rules
+- **Prettier**: Code formatting (printWidth: 100, singleQuote: true, trailing commas)
+- **TypeScript Compiler**: Strict type checking
+
+## Project Structure
+
+```
+frontend/
+├── public/                     # Static assets
+├── src/
+│   ├── app/
+│   │   ├── store.ts           # Redux store configuration
+│   │   ├── hooks.ts           # Typed useAppDispatch, useAppSelector
+│   │   └── api.ts             # RTK Query base API definition
+│   ├── features/              # Feature-based modules
+│   │   ├── candidates/
+│   │   │   ├── components/    # Feature-specific components
+│   │   │   ├── candidatesSlice.ts
+│   │   │   ├── candidatesApi.ts    # RTK Query endpoints
+│   │   │   ├── types.ts
+│   │   │   └── index.ts      # Public exports
+│   │   └── positions/
+│   │       ├── components/
+│   │       ├── positionsSlice.ts
+│   │       ├── positionsApi.ts
+│   │       ├── types.ts
+│   │       └── index.ts
+│   ├── components/            # Shared/reusable UI components
+│   │   ├── Layout/
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── LoadingSpinner.tsx
+│   │   └── Pagination.tsx
+│   ├── hooks/                 # Shared custom hooks
+│   ├── utils/                 # Utility functions
+│   ├── types/                 # Global type definitions
+│   ├── routes/
+│   │   └── AppRouter.tsx      # Route definitions
+│   ├── App.tsx
+│   ├── main.tsx               # Entry point, Provider wrappers
+│   └── index.css              # Global styles
+├── cypress/
+│   ├── e2e/                   # End-to-end test specs
+│   ├── fixtures/              # Test data
+│   └── support/               # Custom commands
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── .eslintrc.cjs
+├── .prettierrc
+└── cypress.config.ts
+```
+
+## Coding Standards
+
+### Naming Conventions
+
+| Element | Convention | Example |
+|---------|-----------|---------|
+| Components | PascalCase | `CandidateCard.tsx` |
+| Hooks | camelCase with `use` prefix | `useCandidates.ts` |
+| Slices | camelCase + `Slice` suffix | `candidatesSlice.ts` |
+| API files | camelCase + `Api` suffix | `candidatesApi.ts` |
+| Utilities | camelCase | `formatDate.ts` |
+| Types/Interfaces | PascalCase | `CandidateProps` |
+| Constants | UPPER_SNAKE_CASE | `MAX_PAGE_SIZE` |
+| CSS classes | kebab-case | `candidate-card` |
+
+### TypeScript Usage
+
+- Strict mode always on.
+- Explicit return types on exported functions.
+- Use `interface` for object shapes, `type` for unions/intersections.
+- Never use `any` — use `unknown` and narrow.
+
+```typescript
+// Prefer interface for props/data shapes
+interface CandidateCardProps {
+  candidate: Candidate;
+  onSelect: (id: string) => void;
+}
+
+// Use type for unions
+type Status = "open" | "closed" | "draft";
+
+// Explicit return types on exports
+export function formatDate(date: string): string {
+  return new Intl.DateTimeFormat("en-US").format(new Date(date));
+}
+```
+
+### File Organization
+
+- One component per file.
+- Co-locate tests: `CandidateCard.tsx` → `CandidateCard.test.tsx`.
+- Barrel exports via `index.ts` per feature folder.
+- Keep files under 300 lines — extract if larger.
+
+## Component Conventions
+
+### Functional Components Only
+
+Always use function declarations with explicit typing:
+
+```typescript
+import { type FC } from "react";
+
+interface CandidateCardProps {
+  candidate: Candidate;
+  index: number;
+  onClick: (candidate: Candidate) => void;
+}
+
+const CandidateCard: FC<CandidateCardProps> = ({ candidate, index, onClick }) => {
+  return (
+    <div className="candidate-card" onClick={() => onClick(candidate)}>
+      <h5>{candidate.fullName}</h5>
+      <span className="text-muted">{candidate.email}</span>
+    </div>
+  );
+};
+
+export default CandidateCard;
+```
+
+### Props
+
+- Destructure props in the function signature.
+- Provide default values where sensible.
+- Use `children: React.ReactNode` for wrapper components.
+
+### Hooks Rules
+
+- Only call hooks at the top level.
+- Extract complex logic into custom hooks (`useCandidate`, `useFormValidation`).
+- Use `useCallback` for event handlers passed to child components.
+- Use `useMemo` for expensive computations.
+
+## State Management with Redux
+
+### Store Configuration
+
+```typescript
+// src/app/store.ts
+import { configureStore } from "@reduxjs/toolkit";
+import { baseApi } from "./api";
+import candidatesReducer from "../features/candidates/candidatesSlice";
+import positionsReducer from "../features/positions/positionsSlice";
+
+export const store = configureStore({
+  reducer: {
+    candidates: candidatesReducer,
+    positions: positionsReducer,
+    [baseApi.reducerPath]: baseApi.reducer,
+  },
+  middleware: (getDefault) => getDefault().concat(baseApi.middleware),
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+```
+
+### Typed Hooks
+
+Always use typed hooks instead of plain `useSelector` / `useDispatch`:
+
+```typescript
+// src/app/hooks.ts
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "./store";
+
+export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
+export const useAppSelector = useSelector.withTypes<RootState>();
+```
+
+### Slices
+
+One slice per feature. Keep reducers pure, handle async via RTK Query or `createAsyncThunk`.
+
+```typescript
+// src/features/candidates/candidatesSlice.ts
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+
+interface CandidatesState {
+  selectedId: string | null;
+  filters: {
+    search: string;
+    status: string;
+  };
+}
+
+const initialState: CandidatesState = {
+  selectedId: null,
+  filters: { search: "", status: "" },
+};
+
+const candidatesSlice = createSlice({
+  name: "candidates",
+  initialState,
+  reducers: {
+    setSelectedCandidate(state, action: PayloadAction<string | null>) {
+      state.selectedId = action.payload;
+    },
+    setFilter(state, action: PayloadAction<{ key: keyof CandidatesState["filters"]; value: string }>) {
+      state.filters[action.key] = action.value;
+    },
+    resetFilters(state) {
+      state.filters = initialState.filters;
+    },
+  },
+});
+
+export const { setSelectedCandidate, setFilter, resetFilters } = candidatesSlice.actions;
+export default candidatesSlice.reducer;
+```
+
+### RTK Query for API Communication
+
+Define a base API and inject endpoints per feature:
+
+```typescript
+// src/app/api.ts
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+
+export const baseApi = createApi({
+  reducerPath: "api",
+  baseQuery: fetchBaseQuery({ baseUrl: import.meta.env.VITE_API_URL + "/api/v1" }),
+  tagTypes: ["Candidate", "Position"],
+  endpoints: () => ({}),
+});
+```
+
+```typescript
+// src/features/candidates/candidatesApi.ts
+import { baseApi } from "../../app/api";
+import type { Candidate, CandidateCreate, PaginatedResponse } from "./types";
+
+export const candidatesApi = baseApi.injectEndpoints({
+  endpoints: (build) => ({
+    listCandidates: build.query<PaginatedResponse<Candidate>, { offset?: number; limit?: number }>({
+      query: ({ offset = 0, limit = 50 }) => `candidates?offset=${offset}&limit=${limit}`,
+      providesTags: (result) =>
+        result
+          ? [...result.items.map(({ id }) => ({ type: "Candidate" as const, id })), "Candidate"]
+          : ["Candidate"],
+    }),
+    getCandidate: build.query<Candidate, string>({
+      query: (id) => `candidates/${id}`,
+      providesTags: (_result, _err, id) => [{ type: "Candidate", id }],
+    }),
+    createCandidate: build.mutation<Candidate, CandidateCreate>({
+      query: (body) => ({ url: "candidates", method: "POST", body }),
+      invalidatesTags: ["Candidate"],
+    }),
+    updateCandidate: build.mutation<Candidate, { id: string; data: Partial<CandidateCreate> }>({
+      query: ({ id, data }) => ({ url: `candidates/${id}`, method: "PUT", body: data }),
+      invalidatesTags: (_result, _err, { id }) => [{ type: "Candidate", id }],
+    }),
+    deleteCandidate: build.mutation<void, string>({
+      query: (id) => ({ url: `candidates/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Candidate"],
+    }),
+  }),
+});
+
+export const {
+  useListCandidatesQuery,
+  useGetCandidateQuery,
+  useCreateCandidateMutation,
+  useUpdateCandidateMutation,
+  useDeleteCandidateMutation,
+} = candidatesApi;
+```
+
+### State Rules
+
+| What | Where |
+|------|-------|
+| Server data (lists, details) | RTK Query cache |
+| UI state (filters, selected item, modals) | Redux slices |
+| Form inputs, ephemeral state | Local `useState` |
+| Complex multi-step forms | `useReducer` |
+
+Never duplicate server data into slices. Let RTK Query own it.
+
+## Routing
+
+### Route Definitions
+
+Centralize routes in a single file with nested layouts:
+
+```typescript
+// src/routes/AppRouter.tsx
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import Layout from "../components/Layout/Layout";
+import LoadingSpinner from "../components/LoadingSpinner";
+
+const Dashboard = lazy(() => import("../features/dashboard/DashboardPage"));
+const CandidateList = lazy(() => import("../features/candidates/CandidateListPage"));
+const CandidateDetail = lazy(() => import("../features/candidates/CandidateDetailPage"));
+const PositionList = lazy(() => import("../features/positions/PositionListPage"));
+const NotFound = lazy(() => import("../components/NotFound"));
+
+const router = createBrowserRouter([
+  {
+    element: <Layout />,
+    children: [
+      { index: true, element: <Dashboard /> },
+      { path: "candidates", element: <CandidateList /> },
+      { path: "candidates/:id", element: <CandidateDetail /> },
+      { path: "positions", element: <PositionList /> },
+      { path: "*", element: <NotFound /> },
+    ],
+  },
+]);
+
+const AppRouter = () => (
+  <Suspense fallback={<LoadingSpinner />}>
+    <RouterProvider router={router} />
+  </Suspense>
+);
+
+export default AppRouter;
+```
+
+### Navigation
+
+- Use `<Link>` / `<NavLink>` for declarative navigation.
+- Use `useNavigate()` for programmatic navigation.
+- Use `useParams()` for route params, `useSearchParams()` for query strings.
+
+## UI/UX Standards
+
+### Bootstrap Integration
+
+Use React Bootstrap components, not raw HTML classes:
+
+```typescript
+import { Container, Row, Col, Card, Button, Alert } from "react-bootstrap";
+
+const CandidateListPage = () => (
+  <Container className="py-4">
+    <Row>
+      <Col md={8}>
+        <Card>
+          <Card.Body>
+            <Card.Title>Candidates</Card.Title>
+            {/* content */}
+          </Card.Body>
+        </Card>
+      </Col>
+    </Row>
+  </Container>
+);
+```
+
+### Forms
+
+Use controlled components with React Bootstrap form components:
+
+```typescript
+import { Form, Button } from "react-bootstrap";
+
+const CandidateForm: FC<{ onSubmit: (data: CandidateCreate) => void; isLoading: boolean }> = ({
+  onSubmit,
+  isLoading,
+}) => {
+  const [formData, setFormData] = useState<CandidateCreate>({
+    first_name: "",
+    last_name: "",
+    email: "",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <Form onSubmit={handleSubmit}>
+      <Form.Group className="mb-3">
+        <Form.Label>First Name *</Form.Label>
+        <Form.Control name="first_name" value={formData.first_name} onChange={handleChange} required />
+      </Form.Group>
+      <Button type="submit" disabled={isLoading}>
+        {isLoading ? "Saving..." : "Save"}
+      </Button>
+    </Form>
+  );
+};
+```
+
+### Loading & Error States
+
+Every data-fetching component must handle loading, error, and empty states:
+
+```typescript
+const CandidateListPage = () => {
+  const { data, isLoading, error } = useListCandidatesQuery({ offset: 0, limit: 50 });
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <Alert variant="danger">Failed to load candidates.</Alert>;
+  if (!data?.items.length) return <Alert variant="info">No candidates found.</Alert>;
+
+  return (
+    <ul>
+      {data.items.map((c) => (
+        <li key={c.id}>{c.first_name} {c.last_name}</li>
+      ))}
+    </ul>
+  );
+};
+```
+
+### Accessibility
+
+- All interactive elements must be keyboard accessible.
+- Use `aria-label` on icon-only buttons.
+- Use semantic HTML (`<main>`, `<nav>`, `<section>`, `<h1>`–`<h6>`).
+- Maintain color contrast ratios per WCAG 2.1 AA.
+
+## API Communication
+
+All API calls go through RTK Query (see [State Management](#rtk-query-for-api-communication)).
+
+**Rules:**
+- Base URL from env var `VITE_API_URL`.
+- All endpoints prefixed with `/api/v1/`.
+- Use `providesTags` / `invalidatesTags` for automatic cache invalidation.
+- Handle error responses in components via the `error` property from query hooks.
+- For auth, add a `prepareHeaders` in `fetchBaseQuery` to attach the Bearer token.
+
+```typescript
+baseQuery: fetchBaseQuery({
+  baseUrl: import.meta.env.VITE_API_URL + "/api/v1",
+  prepareHeaders: (headers) => {
+    const token = localStorage.getItem("access_token");
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    return headers;
+  },
+}),
+```
+
+## Testing Standards
+
+### End-to-End Testing with Cypress
+
+Cypress tests cover full user workflows against a running app + API.
+
+```typescript
+// cypress/e2e/candidates.cy.ts
+describe("Candidates", () => {
+  beforeEach(() => {
+    cy.visit("/candidates");
+  });
+
+  it("should display the candidates list", () => {
+    cy.get("[data-testid='candidate-card']").should("have.length.greaterThan", 0);
+  });
+
+  it("should create a new candidate", () => {
+    cy.get("[data-testid='add-candidate-btn']").click();
+    cy.get("[name='first_name']").type("Jane");
+    cy.get("[name='last_name']").type("Doe");
+    cy.get("[name='email']").type("jane@example.com");
+    cy.get("[data-testid='submit-btn']").click();
+    cy.contains("Jane Doe").should("be.visible");
+  });
+
+  it("should handle API errors gracefully", () => {
+    cy.intercept("GET", "/api/v1/candidates*", { statusCode: 500 }).as("failedLoad");
+    cy.visit("/candidates");
+    cy.wait("@failedLoad");
+    cy.contains("Failed to load candidates").should("be.visible");
+  });
+});
+```
+
+### Cypress Configuration
+
+```typescript
+// cypress.config.ts
+import { defineConfig } from "cypress";
+
+export default defineConfig({
+  e2e: {
+    baseUrl: "http://localhost:3000",
+    env: {
+      API_URL: "http://localhost:8000",
+    },
+    viewportWidth: 1280,
+    viewportHeight: 720,
+  },
+});
+```
+
+### Component Testing (Vitest + RTL)
+
+```typescript
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi } from "vitest";
+import CandidateCard from "./CandidateCard";
+
+describe("CandidateCard", () => {
+  const candidate = { id: "1", first_name: "John", last_name: "Doe", email: "john@example.com" };
+
+  it("renders candidate name and email", () => {
+    render(<CandidateCard candidate={candidate} index={0} onClick={vi.fn()} />);
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
+    expect(screen.getByText("john@example.com")).toBeInTheDocument();
+  });
+
+  it("calls onClick when clicked", async () => {
+    const handleClick = vi.fn();
+    render(<CandidateCard candidate={candidate} index={0} onClick={handleClick} />);
+    await userEvent.click(screen.getByText("John Doe"));
+    expect(handleClick).toHaveBeenCalledWith(candidate);
+  });
+});
+```
+
+### Test Rules
+
+- Use `data-testid` attributes for Cypress selectors, not CSS classes.
+- Group tests by feature in `cypress/e2e/`.
+- Test both happy paths and error scenarios.
+- Mock API responses with `cy.intercept()` for error/edge case testing.
+
+## Configuration Standards
+
+### TypeScript
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
+    "types": ["vite/client"]
+  },
+  "include": ["src"]
+}
+```
+
+### ESLint + Prettier
+
+`.eslintrc.cjs`:
+```javascript
+module.exports = {
+  root: true,
+  parser: "@typescript-eslint/parser",
+  plugins: ["@typescript-eslint", "react-hooks"],
+  extends: [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+    "prettier",
+  ],
+  rules: {
+    "react/react-in-jsx-scope": "off",
+    "@typescript-eslint/no-explicit-any": "error",
+    "react-hooks/exhaustive-deps": "warn",
+  },
+  settings: { react: { version: "detect" } },
+};
+```
+
+`.prettierrc`:
+```json
+{
+  "printWidth": 100,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "semi": true
+}
+```
+
+### Environment Variables
+
+All env vars prefixed with `VITE_`:
+
+```bash
+# .env.development
+VITE_API_URL=http://localhost:8000
+
+# .env.production
+VITE_API_URL=https://api.example.com
+```
+
+Access: `import.meta.env.VITE_API_URL`
+
+Never commit `.env` files. Provide `.env.example`.
+
+## Performance Best Practices
+
+### Component Optimization
+- Lazy load route-level components with `React.lazy`.
+- Memoize with `React.memo` for components receiving stable props.
+- Use `useCallback` for handlers passed as props.
+- Use `useMemo` for derived data (filtered lists, computed values).
+
+### Bundle
+- Vite handles tree-shaking and code splitting automatically.
+- Import React Bootstrap components individually: `import Button from 'react-bootstrap/Button'`.
+- Monitor bundle with `npx vite-bundle-visualizer`.
+
+### API
+- RTK Query caches responses by default — avoid redundant fetches.
+- Use `keepUnusedDataFor` to control cache lifetime.
+- Use `pollingInterval` for real-time data only where needed.
+
+## Development Workflow
+
+### Git Workflow
+- Feature branches with `-frontend` suffix (e.g., `feat/candidate-list-frontend`)
+- Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `style:`
+- Code review required before merge
+- Keep branches small and focused
+
+### Development Scripts
+
+```bash
+# Dev server
+npm run dev
+
+# Type check
+npx tsc --noEmit
+
+# Lint
+npx eslint src/ --ext .ts,.tsx
+
+# Format
+npx prettier --write src/
+
+# Run component tests
+npx vitest
+
+# Open Cypress
+npx cypress open
+
+# Run Cypress headless
+npx cypress run
+
+# Production build
+npm run build
+```
+
+### Code Quality (CI)
+
+GitHub Actions pipeline on every PR:
+
+1. `npx tsc --noEmit` — type checking
+2. `npx eslint src/` — linting
+3. `npx prettier --check src/` — formatting
+4. `npx vitest run` — component tests
+5. `npx cypress run` — e2e tests (against preview build)
+
+All must pass before merge.
