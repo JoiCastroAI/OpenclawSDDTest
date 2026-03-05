@@ -6,7 +6,14 @@
       "Bash(*)",
       "Read(*)",
       "Write(*)",
-      "Edit(*)"
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "Agent(*)",
+      "TodoRead(*)",
+      "TodoWrite(*)",
+      "WebFetch(*)",
+      "Skill(*)"
     ]
   }
 }
