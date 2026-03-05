@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__notion__*",
+      "mcp__figma__*",
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)"
+    ]
+  }
+}
